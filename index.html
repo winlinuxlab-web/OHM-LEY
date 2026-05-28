@@ -99,6 +99,7 @@ header {
   transition: 0.3s;
   text-transform: uppercase;
   width: 100%;
+  margin-top: 0.5rem;
 }
 
 .btn-primary {
@@ -165,6 +166,14 @@ header {
 
 .hidden {
   display: none !important;
+}
+
+#feedback {
+  line-height: 1.5;
+}
+
+#feedback strong {
+  color: inherit;
 }
 </style>
 </head>
@@ -267,8 +276,17 @@ let current = 0;
 let score = 0;
 
 // ======================
-// FUNCIONES DE CÁLCULO
+// FUNCIONES DE APOYO
 // ======================
+
+function getRandR() {
+    return E24[Math.floor(Math.random() * E24.length)] *
+           MULTIPLIERS[Math.floor(Math.random() * MULTIPLIERS.length)];
+}
+
+function formatNumber(num, decimals = 2) {
+    return Number(num).toFixed(decimals);
+}
 
 function calculateCurrent(v, r) {
 
@@ -276,23 +294,25 @@ function calculateCurrent(v, r) {
 
     if (i < 0.1) {
         return {
-            val: (i * 1000).toFixed(1),
+            val: parseFloat((i * 1000).toFixed(1)),
             unit: 'mA',
             raw: i
         };
     }
 
     return {
-        val: i.toFixed(2),
+        val: parseFloat(i.toFixed(2)),
         unit: 'A',
         raw: i
     };
 }
 
-function getRandR() {
+function convertCurrentToAmp(value, unit) {
+    if (unit === "mA") {
+        return value / 1000;
+    }
 
-    return E24[Math.floor(Math.random() * E24.length)] *
-           MULTIPLIERS[Math.floor(Math.random() * MULTIPLIERS.length)];
+    return value;
 }
 
 // ======================
@@ -304,72 +324,209 @@ function generateQuestion() {
     const type = Math.floor(Math.random() * 3);
 
     const V = VOLTAGES[Math.floor(Math.random() * VOLTAGES.length)];
-
     const R = getRandR();
-
     const IObj = calculateCurrent(V, R);
 
     if (type === 0) {
 
         return {
-            type: "Ley de Ohm",
+            type: "voltaje",
             q: "¿Cuál es el Voltaje total del circuito?",
             data: [
-                { l:'R', v:R + ' Ω' },
-                { l:'I', v:IObj.val + ' ' + IObj.unit }
+                { l:'R', v:R, unit:'Ω' },
+                { l:'I', v:IObj.val, unit:IObj.unit }
             ],
             ans: V,
-            unit: 'V'
+            unit: 'V',
+            raw: {
+                V: V,
+                R: R,
+                I_A: IObj.raw,
+                I_display: IObj.val,
+                I_unit: IObj.unit
+            }
         };
     }
 
     else if (type === 1) {
 
         return {
-            type: "Ley de Ohm",
+            type: "resistencia",
             q: "¿Cuál es la Resistencia del componente?",
             data: [
-                { l:'V', v:V + ' V' },
-                { l:'I', v:IObj.val + ' ' + IObj.unit }
+                { l:'V', v:V, unit:'V' },
+                { l:'I', v:IObj.val, unit:IObj.unit }
             ],
             ans: R,
-            unit: 'Ω'
+            unit: 'Ω',
+            raw: {
+                V: V,
+                R: R,
+                I_A: IObj.raw,
+                I_display: IObj.val,
+                I_unit: IObj.unit
+            }
         };
     }
 
     else {
 
         return {
-            type: "Ley de Ohm",
+            type: "corriente",
             q: "¿Cuál es la Intensidad de corriente?",
             data: [
-                { l:'V', v:V + ' V' },
-                { l:'R', v:R + ' Ω' }
+                { l:'V', v:V, unit:'V' },
+                { l:'R', v:R, unit:'Ω' }
             ],
-            ans: parseFloat(IObj.val),
-            unit: IObj.unit
+            ans: IObj.val,
+            unit: IObj.unit,
+            raw: {
+                V: V,
+                R: R,
+                I_A: IObj.raw,
+                I_display: IObj.val,
+                I_unit: IObj.unit
+            }
         };
     }
 }
 
 // ======================
-// RETROALIMENTACIÓN
+// RETROALIMENTACIÓN REAL
 // ======================
 
 function generarRetroalimentacion(q, userAns, isCorrect) {
 
-    if (isCorrect) {
+    const userText = `Tu respuesta fue: ${userAns} ${q.unit}`;
 
+    let formula = "";
+    let desarrollo = "";
+    let explicacion = "";
+    let advertencia = "";
+
+    if (q.type === "voltaje") {
+
+        formula = "V = I × R";
+
+        const corrienteEnA = q.raw.I_A;
+
+        desarrollo = `
+            <strong>Datos entregados:</strong><br>
+            R = ${q.raw.R} Ω<br>
+            I = ${q.raw.I_display} ${q.raw.I_unit}<br><br>
+
+            <strong>Conversión necesaria:</strong><br>
+            ${q.raw.I_display} ${q.raw.I_unit} = ${formatNumber(corrienteEnA, 4)} A<br><br>
+
+            <strong>Aplicación de la fórmula:</strong><br>
+            V = I × R<br>
+            V = ${formatNumber(corrienteEnA, 4)} × ${q.raw.R}<br>
+            V = ${q.ans} V
+        `;
+
+        explicacion = `
+            Para calcular voltaje, debes multiplicar la corriente por la resistencia.
+            En la Ley de Ohm, la corriente debe estar expresada en amperes.
+        `;
+
+        advertencia = `
+            Si usaste directamente el valor en mA sin convertirlo a A,
+            el resultado queda multiplicado por 1000 y será incorrecto.
+        `;
+    }
+
+    else if (q.type === "resistencia") {
+
+        formula = "R = V / I";
+
+        const corrienteEnA = q.raw.I_A;
+
+        desarrollo = `
+            <strong>Datos entregados:</strong><br>
+            V = ${q.raw.V} V<br>
+            I = ${q.raw.I_display} ${q.raw.I_unit}<br><br>
+
+            <strong>Conversión necesaria:</strong><br>
+            ${q.raw.I_display} ${q.raw.I_unit} = ${formatNumber(corrienteEnA, 4)} A<br><br>
+
+            <strong>Aplicación de la fórmula:</strong><br>
+            R = V / I<br>
+            R = ${q.raw.V} / ${formatNumber(corrienteEnA, 4)}<br>
+            R = ${q.ans} Ω
+        `;
+
+        explicacion = `
+            Para calcular resistencia, debes dividir el voltaje por la corriente.
+            La corriente debe estar en amperes antes de realizar la división.
+        `;
+
+        advertencia = `
+            Un error común es dividir usando mA directamente.
+            Por ejemplo, no es lo mismo dividir por 24 mA que dividir por 0,024 A.
+        `;
+    }
+
+    else if (q.type === "corriente") {
+
+        formula = "I = V / R";
+
+        const corrienteA = q.raw.I_A;
+        const corrienteResultado = q.raw.I_display;
+
+        desarrollo = `
+            <strong>Datos entregados:</strong><br>
+            V = ${q.raw.V} V<br>
+            R = ${q.raw.R} Ω<br><br>
+
+            <strong>Aplicación de la fórmula:</strong><br>
+            I = V / R<br>
+            I = ${q.raw.V} / ${q.raw.R}<br>
+            I = ${formatNumber(corrienteA, 4)} A<br><br>
+
+            <strong>Expresión en la unidad solicitada:</strong><br>
+            I = ${corrienteResultado} ${q.unit}
+        `;
+
+        explicacion = `
+            Para calcular corriente, debes dividir el voltaje por la resistencia.
+            Si el resultado en amperes es muy pequeño, se expresa en miliamperes.
+        `;
+
+        advertencia = `
+            Recuerda que 1 A = 1000 mA.
+            Por eso, 0,024 A equivale a 24 mA.
+        `;
+    }
+
+    if (isCorrect) {
         return `
-        ✅ Correcto.<br>
-        Buen manejo de la Ley de Ohm.
+            ✅ <strong>Correcto.</strong><br><br>
+            ${userText}<br><br>
+
+            <strong>Fórmula usada:</strong> ${formula}<br><br>
+
+            ${desarrollo}<br><br>
+
+            <strong>Retroalimentación:</strong><br>
+            Buen trabajo. Aplicaste correctamente la Ley de Ohm y respetaste la unidad solicitada.
         `;
     }
 
     return `
-    ❌ Incorrecto.<br>
-    Revisa la aplicación de la fórmula correspondiente.<br>
-    <strong>Resultado correcto:</strong> ${q.ans} ${q.unit}
+        ❌ <strong>Incorrecto.</strong><br><br>
+        ${userText}<br><br>
+
+        <strong>Fórmula correcta:</strong> ${formula}<br><br>
+
+        ${desarrollo}<br><br>
+
+        <strong>Resultado correcto:</strong> ${q.ans} ${q.unit}<br><br>
+
+        <strong>Retroalimentación:</strong><br>
+        ${explicacion}<br><br>
+
+        <strong>Revisa especialmente:</strong><br>
+        ${advertencia}
     `;
 }
 
@@ -379,12 +536,15 @@ function generarRetroalimentacion(q, userAns, isCorrect) {
 
 function startQuiz() {
 
+    questions = [];
+    current = 0;
+    score = 0;
+
     for(let i = 0; i < 10; i++) {
         questions.push(generateQuestion());
     }
 
     document.getElementById('screen-welcome').classList.add('hidden');
-
     document.getElementById('screen-question').classList.remove('hidden');
 
     renderQuestion();
@@ -396,6 +556,8 @@ function renderQuestion() {
 
     document.getElementById('q-num').textContent =
         `EJERCICIO ${current + 1} / 10`;
+
+    document.getElementById('q-type').textContent = "LEY DE OHM";
 
     document.getElementById('question-text').textContent = q.q;
 
@@ -420,7 +582,7 @@ function renderQuestion() {
             </div>
 
             <div class="dc-value">
-                ${d.v}
+                ${d.v} ${d.unit}
             </div>
         </div>
     `).join('');
@@ -432,15 +594,30 @@ function renderQuestion() {
 
 function submitAnswer() {
 
-    const userAns =
-        parseFloat(document.getElementById('answer-input').value);
+    const input = document.getElementById('answer-input').value.trim();
+    const userAns = parseFloat(input);
 
     const q = questions[current];
 
-    const isCorrect =
-        Math.abs(userAns - q.ans) < (q.ans * 0.05);
-
     const fb = document.getElementById('feedback');
+
+    if (input === "" || isNaN(userAns)) {
+        fb.style.display = 'block';
+        fb.style.background = 'rgba(226,35,26,0.2)';
+        fb.style.color = '#ff4444';
+
+        fb.innerHTML = `
+            ⚠️ <strong>Respuesta no válida.</strong><br><br>
+            Debes ingresar un número antes de validar la respuesta.
+        `;
+
+        return;
+    }
+
+    const tolerance = q.ans * 0.05;
+
+    const isCorrect =
+        Math.abs(userAns - q.ans) <= tolerance;
 
     fb.style.display = 'block';
 
@@ -454,7 +631,6 @@ function submitAnswer() {
         ? '#2ecc71'
         : '#ff4444';
 
-    // USO DE FUNCIÓN MODULAR DE RETROALIMENTACIÓN
     fb.innerHTML =
         generarRetroalimentacion(q, userAns, isCorrect);
 
@@ -492,6 +668,10 @@ function showResults() {
         score < 6
         ? (score / 6) * 3 + 1
         : ((score - 6) / 4) * 3 + 4;
+
+    if (nota > 7) {
+        nota = 7;
+    }
 
     document.getElementById('nota-display')
         .textContent = nota.toFixed(1);

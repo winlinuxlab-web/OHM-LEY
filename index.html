@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evaluador Técnico: Ley de Ohm - INACAP</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --inacap-red: #e2231a;
+  --bg-dark: #0f0f0f;
+  --panel: #1a1a1a;
+  --white: #ffffff;
+  --gray: #888888;
+  --border: rgba(226, 35, 26, 0.3);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg-dark);
+  color: var(--white);
+  font-family: 'Rajdhani', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+}
+
+#app {
+  width: 100%;
+  max-width: 860px;
+  padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  text-align: center;
+  border-bottom: 3px solid var(--inacap-red);
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+}
+
+.inst-name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2.8rem;
+  font-weight: 900;
+  margin-bottom: 0.2rem;
+  color: var(--inacap-red);
+  letter-spacing: 2px;
+}
+
+.inst-dept {
+  font-size: 1rem;
+  letter-spacing: 0.25em;
+  color: var(--white);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.sub-title {
+  font-size: 1.2rem;
+  color: var(--inacap-red);
+  font-weight: 600;
+  margin-top: 0.5rem;
+  text-transform: uppercase;
+}
+
+.credit-line {
+  font-size: 0.85rem;
+  color: var(--gray);
+  margin-top: 0.4rem;
+  font-style: italic;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2.5rem;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.8);
+}
+
+.btn {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  padding: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: 0.3s;
+  text-transform: uppercase;
+  width: 100%;
+}
+
+.btn-primary {
+  background: var(--inacap-red);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #b51a14;
+}
+
+.answer-input {
+  flex: 1;
+  background: #2a2a2a;
+  border: 2px solid #444;
+  padding: 1rem;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 1.5rem;
+  color: var(--white);
+  outline: none;
+}
+
+.answer-input:focus {
+  border-color: var(--inacap-red);
+}
+
+.unit-display {
+  background: #333;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  color: var(--inacap-red);
+  font-size: 1.2rem;
+}
+
+.q-badge {
+  background: var(--inacap-red);
+  padding: 0.4rem 1rem;
+  font-family: 'Orbitron';
+  font-size: 0.8rem;
+}
+
+.data-chip {
+  background: #252525;
+  border-left: 4px solid var(--inacap-red);
+  padding: 0.8rem 1.5rem;
+  min-width: 120px;
+}
+
+.dc-value {
+  color: var(--white);
+  font-weight: 700;
+  font-size: 1.3rem;
+  font-family: 'Share Tech Mono';
+}
+
+.nota-display {
+  font-family: 'Orbitron';
+  font-size: 5rem;
+  color: var(--inacap-red);
+  text-align: center;
+}
+
+.hidden {
+  display: none !important;
+}
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+<header>
+  <div class="inst-name">INACAP</div>
+  <div class="inst-dept">Electricidad y Electrónica</div>
+  <div class="sub-title">Ley de Ohm</div>
+  <div class="credit-line">Aporte de la docente Edith Mena (NMZ)</div>
+</header>
+
+<div class="card" id="screen-welcome">
+  <p style="text-align:center; margin-bottom:2rem; color:var(--gray);">
+    Esta evaluación generará 10 ejercicios aleatorios basados en la serie E24.<br>
+    <strong>Nota mínima de aprobación (4.0): 60% de logro.</strong>
+  </p>
+
+  <button class="btn btn-primary" onclick="startQuiz()">
+    Comenzar Evaluación
+  </button>
+</div>
+
+<div class="card hidden" id="screen-question">
+
+  <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem;">
+    <span class="q-badge" id="q-num">Pregunta 1</span>
+    <span id="q-type" style="color:var(--inacap-red); font-weight:700;">
+      LEY DE OHM
+    </span>
+  </div>
+
+  <div id="data-chips"
+       style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:2rem;">
+  </div>
+
+  <h2 id="question-text" style="margin-bottom:1.5rem;"></h2>
+
+  <div style="display:flex; gap:0.5rem; margin-bottom:1.5rem;">
+    <input class="answer-input"
+           id="answer-input"
+           type="number"
+           step="any"
+           placeholder="0.00">
+
+    <div class="unit-display" id="unit-display"></div>
+  </div>
+
+  <div id="feedback"
+       style="display:none; padding:1rem; margin-bottom:1rem; border-radius:4px; font-weight:600;">
+  </div>
+
+  <button class="btn btn-primary"
+          id="btn-submit"
+          onclick="submitAnswer()">
+    Validar Respuesta
+  </button>
+
+  <button class="btn btn-primary hidden"
+          id="btn-next"
+          onclick="nextQuestion()">
+    Siguiente Ejercicio
+  </button>
+
+</div>
+
+<div class="card hidden" id="screen-results">
+
+  <h2 style="text-align:center;">Resultado Final</h2>
+
+  <div class="nota-display" id="nota-display">1.0</div>
+
+  <div id="res-stats"
+       style="text-align:center; margin-bottom:2rem; font-size:1.2rem; color:var(--gray);">
+  </div>
+
+  <button class="btn btn-primary" onclick="location.reload()">
+    Reiniciar Evaluador
+  </button>
+
+</div>
+
+</div>
+
+<script>
+
+// ======================
+// CONFIGURACIÓN
+// ======================
+
+const E24 = [1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.3, 3.9, 4.7, 5.6, 6.8, 8.2];
+const MULTIPLIERS = [10, 100, 1000];
+const VOLTAGES = [5, 12, 15, 24];
+
+let questions = [];
+let current = 0;
+let score = 0;
+
+// ======================
+// FUNCIONES DE CÁLCULO
+// ======================
+
+function calculateCurrent(v, r) {
+
+    let i = v / r;
+
+    if (i < 0.1) {
+        return {
+            val: (i * 1000).toFixed(1),
+            unit: 'mA',
+            raw: i
+        };
+    }
+
+    return {
+        val: i.toFixed(2),
+        unit: 'A',
+        raw: i
+    };
+}
+
+function getRandR() {
+
+    return E24[Math.floor(Math.random() * E24.length)] *
+           MULTIPLIERS[Math.floor(Math.random() * MULTIPLIERS.length)];
+}
+
+// ======================
+// GENERACIÓN DE PREGUNTAS
+// ======================
+
+function generateQuestion() {
+
+    const type = Math.floor(Math.random() * 3);
+
+    const V = VOLTAGES[Math.floor(Math.random() * VOLTAGES.length)];
+
+    const R = getRandR();
+
+    const IObj = calculateCurrent(V, R);
+
+    if (type === 0) {
+
+        return {
+            type: "Ley de Ohm",
+            q: "¿Cuál es el Voltaje total del circuito?",
+            data: [
+                { l:'R', v:R + ' Ω' },
+                { l:'I', v:IObj.val + ' ' + IObj.unit }
+            ],
+            ans: V,
+            unit: 'V'
+        };
+    }
+
+    else if (type === 1) {
+
+        return {
+            type: "Ley de Ohm",
+            q: "¿Cuál es la Resistencia del componente?",
+            data: [
+                { l:'V', v:V + ' V' },
+                { l:'I', v:IObj.val + ' ' + IObj.unit }
+            ],
+            ans: R,
+            unit: 'Ω'
+        };
+    }
+
+    else {
+
+        return {
+            type: "Ley de Ohm",
+            q: "¿Cuál es la Intensidad de corriente?",
+            data: [
+                { l:'V', v:V + ' V' },
+                { l:'R', v:R + ' Ω' }
+            ],
+            ans: parseFloat(IObj.val),
+            unit: IObj.unit
+        };
+    }
+}
+
+// ======================
+// RETROALIMENTACIÓN
+// ======================
+
+function generarRetroalimentacion(q, userAns, isCorrect) {
+
+    if (isCorrect) {
+
+        return `
+        ✅ Correcto.<br>
+        Buen manejo de la Ley de Ohm.
+        `;
+    }
+
+    return `
+    ❌ Incorrecto.<br>
+    Revisa la aplicación de la fórmula correspondiente.<br>
+    <strong>Resultado correcto:</strong> ${q.ans} ${q.unit}
+    `;
+}
+
+// ======================
+// FLUJO DEL QUIZ
+// ======================
+
+function startQuiz() {
+
+    for(let i = 0; i < 10; i++) {
+        questions.push(generateQuestion());
+    }
+
+    document.getElementById('screen-welcome').classList.add('hidden');
+
+    document.getElementById('screen-question').classList.remove('hidden');
+
+    renderQuestion();
+}
+
+function renderQuestion() {
+
+    const q = questions[current];
+
+    document.getElementById('q-num').textContent =
+        `EJERCICIO ${current + 1} / 10`;
+
+    document.getElementById('question-text').textContent = q.q;
+
+    document.getElementById('unit-display').textContent = q.unit;
+
+    document.getElementById('answer-input').value = '';
+
+    document.getElementById('feedback').style.display = 'none';
+
+    document.getElementById('btn-submit').classList.remove('hidden');
+
+    document.getElementById('btn-next').classList.add('hidden');
+
+    const chips = document.getElementById('data-chips');
+
+    chips.innerHTML = q.data.map(d => `
+        <div class="data-chip">
+            <div style="font-size:0.7rem;
+                        color:var(--inacap-red);
+                        text-transform:uppercase;">
+                ${d.l}
+            </div>
+
+            <div class="dc-value">
+                ${d.v}
+            </div>
+        </div>
+    `).join('');
+}
+
+// ======================
+// VALIDACIÓN
+// ======================
+
+function submitAnswer() {
+
+    const userAns =
+        parseFloat(document.getElementById('answer-input').value);
+
+    const q = questions[current];
+
+    const isCorrect =
+        Math.abs(userAns - q.ans) < (q.ans * 0.05);
+
+    const fb = document.getElementById('feedback');
+
+    fb.style.display = 'block';
+
+    fb.style.background =
+        isCorrect
+        ? 'rgba(46,204,113,0.2)'
+        : 'rgba(226,35,26,0.2)';
+
+    fb.style.color =
+        isCorrect
+        ? '#2ecc71'
+        : '#ff4444';
+
+    // USO DE FUNCIÓN MODULAR DE RETROALIMENTACIÓN
+    fb.innerHTML =
+        generarRetroalimentacion(q, userAns, isCorrect);
+
+    if(isCorrect) {
+        score++;
+    }
+
+    document.getElementById('btn-submit').classList.add('hidden');
+
+    document.getElementById('btn-next').classList.remove('hidden');
+}
+
+function nextQuestion() {
+
+    current++;
+
+    if (current < 10) {
+        renderQuestion();
+    }
+
+    else {
+        showResults();
+    }
+}
+
+function showResults() {
+
+    document.getElementById('screen-question')
+        .classList.add('hidden');
+
+    document.getElementById('screen-results')
+        .classList.remove('hidden');
+
+    let nota =
+        score < 6
+        ? (score / 6) * 3 + 1
+        : ((score - 6) / 4) * 3 + 4;
+
+    document.getElementById('nota-display')
+        .textContent = nota.toFixed(1);
+
+    document.getElementById('res-stats')
+        .textContent =
+        `Lograste ${score} de 10 respuestas correctas.`;
+}
+
+</script>
+
+</body>
+</html>
